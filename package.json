@@ -7,6 +7,7 @@
     "scripts": {
         "dev:client": "pnpm --filter PGCD-client dev",
         "dev:server": "pnpm --filter PGCD-server dev",
+        "dev": "concurrently \"pnpm run dev:server\" \"pnpm run dev:client\"",
         "lint:client": "pnpm --filter PGCD-client lint",
         "lint:server": "pnpm --filter PGCD-server lint",
         "format": "prettier --write .",
@@ -55,5 +56,8 @@
         "husky": "^9.1.7",
         "lint-staged": "^17.3.0",
         "prettier": "^3.9.6"
+    },
+    "dependencies": {
+        "concurrently": "^10.0.5"
     }
 }

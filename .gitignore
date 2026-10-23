@@ -36,6 +36,7 @@ playwright-report/
 node_modules/
 /build
 dictionaries/
+/isolated
 # Logs
 logs
 *.log

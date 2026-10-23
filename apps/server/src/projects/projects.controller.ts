@@ -5,6 +5,7 @@ import {
     Body,
     Patch,
     Param,
+    StreamableFile,
     Delete,
 } from "@nestjs/common";
 import { ProjectsService } from "./projects.service";
@@ -13,6 +14,7 @@ import { ApiCreatedResponse, ApiTags } from "@nestjs/swagger";
 import { CreatedProjectResponse } from "./dto/created-project-response.dto";
 import { UpdateProjectDto } from "./dto/update-project.dto";
 import { SchemeDataDto } from "./dto/scheme.dto";
+import { Project } from "@/generated/prisma/client";
 @ApiTags("projects")
 @Controller("projects")
 export class ProjectsController {
@@ -58,5 +60,14 @@ export class ProjectsController {
     @Delete(":id")
     async removeProject(@Param("id") id: string) {
         return await this.projectsService.removeProject(id);
+    }
+
+    @Post("/printReport/:id")
+    async printReport(@Param("id") id: Project["id"]) {
+        const pdfBytes = await this.projectsService.printReport(id);
+        return new StreamableFile(pdfBytes, {
+            type: "application/pdf",
+            disposition: `attachment; filename="report-${id}.pdf"`,
+        });
     }
 }

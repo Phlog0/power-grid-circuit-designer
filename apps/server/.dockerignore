@@ -6,5 +6,5 @@ dist
 .vscode
 coverage
 docker-compose*.yml
-
+.husky
 test

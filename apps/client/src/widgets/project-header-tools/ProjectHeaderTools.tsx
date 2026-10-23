@@ -10,6 +10,7 @@ import { ResponsiveButtons } from "./ResponsiveButtons";
 import { ActionButtons } from "@/pages/ActionsButtons";
 import { useParams } from "react-router-dom";
 import { ExternalReactFlowDimensions } from "@/pages/FlowLayout";
+import { PrintReportButton } from "@/features/print-report";
 
 export function ProjectHeaderTools({
     className,
@@ -35,6 +36,7 @@ export function ProjectHeaderTools({
                 <ChangeThemeButton /> <ResponsiveButtons className="hidden max-lg:block" />
                 <OpenModalPropertiesButton />
                 <RemoveReactFlowNodeButton />
+                <PrintReportButton projectId={projectId} />
                 <ExitProjectButton />
                 <div className="flex items-center gap-4 max-lg:hidden">
                     <ContactMe />

@@ -72,7 +72,6 @@ export const projectApiService = {
         const response = await apiInstance.get<SuccessGetProjectScheme>(
             API_ROUTES.PROJECTS + `/project-scheme/${id}`
         );
-        console.log(response.data);
         return response.data;
     },
 
@@ -81,5 +80,16 @@ export const projectApiService = {
             `getReadySolutionsList/${dictionaryFolder}/${query}`
         );
         return response.data.dictionaryData;
+    },
+
+    printReport: async (projectId: ProjectId) => {
+        const response = await apiInstance.post(
+            API_ROUTES.PROJECTS + `/printReport/${projectId}`,
+            null,
+            {
+                responseType: "blob",
+            }
+        );
+        return response;
     },
 };

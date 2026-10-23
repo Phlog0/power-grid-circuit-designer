@@ -3,7 +3,8 @@ services:
     # DATABASE
     # 📁📁📁📁📁📁📁📁📁📁📁📁📁📁📁📁
     db:
-        image: postgres:16
+        image: postgres:18
+        container_name: postgres_18_db
         restart: always
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
@@ -13,7 +14,7 @@ services:
             - "127.0.0.1:54322:5432"
             # - "54322:5432"
         volumes:
-            - postgres_data:/var/lib/postgresql/data
+            - postgres_data:/var/lib/postgresql
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U myuser -d ${POSTGRES_DB}"]
             interval: 5s
@@ -43,13 +44,11 @@ services:
     # 🏃🏃🏃🏃🏃🏃🏃🏃🏃🏃🏃🏃🏃🏃🏃🏃
     server-db-migrate:
         build:
-            context: ./PGCD-server-2025
-            target: builder
-        env_file:
-            - ./PGCD-server-2025/.env.docker
-        command: sh -c "pnpm exec prisma migrate deploy && pnpm exec prisma generate"
+            context: .
+            dockerfile: apps/server/Dockerfile
+            target: migrations
         environment:
-            DATABASE_URL: ${DATABASE_URL}
+            - DATABASE_URL=${DATABASE_URL}
         #   DATABASE_URL: "postgresql://myuser:mypassword@db:5432/PGCD_2025_db?schema=public"
         depends_on:
             db:
@@ -59,8 +58,10 @@ services:
     # CLIENT
     # ⚛️⚛️⚛️⚛️⚛️⚛️⚛️⚛️⚛️⚛️⚛️⚛️⚛️⚛️⚛️⚛️
     client:
+        profiles: ["monitoring"]
         build:
-            context: ./client
+            context: .
+            dockerfile: apps/client/Dockerfile
         restart: unless-stopped
         # Не публикуем порты - пусть идет через nginx
         expose:
@@ -71,28 +72,30 @@ services:
     # 🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩
     server:
         build:
-            context: ./server
-            target: production
+            context: .
+            dockerfile: apps/server/Dockerfile
+            target: deploy
         ports:
             - "3000:3000"
         env_file:
-            - ./server/.env.docker
+            - ./apps/server/.env.docker
 
         depends_on:
             db:
                 condition: service_healthy
             server-db-migrate:
-                condition: service_completed_successfully # Ждем успешного завершения миграций!
-            loki:
-                condition: service_started
-            prometheus:
-                condition: service_started
+                condition: service_completed_successfully
+            # loki:
+            #     condition: service_started
+            # prometheus:
+            #     condition: service_started
         restart: unless-stopped
 
     # 🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩
     # NGINX
     # 🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩
     nginx:
+        profiles: ["monitoring"]
         image: nginx:alpine
         ports:
             - "80:80"
@@ -108,11 +111,12 @@ services:
     # LOKI
     # 📄📄📄📄📄📄📄📄📄📄📄📄📄📄📄📄
     loki:
+        profiles: ["monitoring"]
         image: grafana/loki:3.0.0
         # ports:
         # - "3100:3100"
         volumes:
-            - ./server/monitoring/loki-config.yaml:/etc/loki/local-config.yaml
+            - ./apps/server/monitoring/loki-config.yaml:/etc/loki/local-config.yaml
             - loki_data:/loki
         command: -config.file=/etc/loki/local-config.yaml
         healthcheck:
@@ -125,20 +129,22 @@ services:
     # prometheus
     # 📄📄📄📄📄📄📄📄📄📄📄📄📄📄📄📄
     prometheus:
+        profiles: ["monitoring"]
         image: prom/prometheus:v2.47.0
         # ports:
         # - "9090:9090"
         volumes:
-            - ./server/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+            - ./apps/server/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
             - prometheus_data:/prometheus
         command:
             - "--config.file=/etc/prometheus/prometheus.yml"
             - --web.enable-remote-write-receiver
 
     alloy:
+        profiles: ["monitoring"]
         image: grafana/alloy:latest
         volumes:
-            - ./server/monitoring/config.alloy:/etc/alloy/config.alloy
+            - ./apps/server/monitoring/config.alloy:/etc/alloy/config.alloy
             - /var/run/docker.sock:/var/run/docker.sock:ro
         command:
             - run
@@ -154,6 +160,7 @@ services:
     # GRAFANA
     # 📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈📈
     grafana:
+        profiles: ["monitoring"]
         image: grafana/grafana:11.0.0
         ports:
             - "3001:3000"

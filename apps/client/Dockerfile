@@ -1,37 +1,42 @@
-# frontend/Dockerfile
-FROM node:22-slim AS builder
+FROM node:24-slim AS base
+RUN npm i -g pnpm
 
+FROM base AS dependencies
 WORKDIR /app
+COPY package.json pnpm-lock.yaml ./
+ENV PNPM_ONLY_BUILT_DEPENDENCIES=""
+RUN pnpm install
 
-# Копируем package.json
-COPY package*.json ./
-RUN npm ci
-
-# Копируем исходники
+FROM base AS build
+WORKDIR /app
 COPY . .
-
-# Собираем с правильным base path
-RUN npm run build
-
-# Второй этап - nginx для отдачи статики
-FROM nginx:alpine
-
-# Копируем собранные файлы
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Копируем кастомный nginx конфиг для SPA
-RUN echo 'server { \
-    listen 80; \
-    server_name localhost; \
-    location /constructor/ { \
-        alias /usr/share/nginx/html/; \
-        try_files $uri $uri/ /constructor/index.html; \
-    } \
-    location / { \
-        return 404; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
+COPY --from=dependencies /app/node_modules ./node_modules
+RUN pnpm build
+RUN pnpm prune --prod
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+# # frontend/Dockerfile
+# FROM node:22-slim AS builder
+
+# WORKDIR /app
+
+# # Копируем package.json
+# COPY package*.json ./
+# RUN npm ci
+
+# # Копируем исходники
+# COPY . .
+
+# # Собираем с правильным base path
+# RUN npm run build
+
+# # Второй этап - nginx для отдачи статики
+# FROM nginx:alpine
+
+# # Копируем собранные файлы
+# COPY --from=builder /app/dist /usr/share/nginx/html
+
+
+
+# CMD ["nginx", "-g", "daemon off;"]
